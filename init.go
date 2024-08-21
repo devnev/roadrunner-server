@@ -96,15 +96,16 @@ func (b *command) createProcess(env map[string]string, cmd []string) *exec.Cmd {
 		execCmd = exec.Command(cmdArgs[0], cmdArgs[1:]...)
 	}
 
+	// include inherited envs before env settings so that settings override inherited envs
+	execCmd.Env = append(execCmd.Env, os.Environ()...)
+
 	// set env variables from the config
 	if len(env) > 0 {
 		for k, v := range env {
-			execCmd.Env = append(execCmd.Env, fmt.Sprintf("%s=%s", strings.ToUpper(k), os.Expand(v, os.Getenv)))
+			execCmd.Env = append(execCmd.Env, fmt.Sprintf("%s=%s", strings.ToUpper(k), ExpandVal(v, os.Getenv)))
 		}
 	}
 
-	// append system envs
-	execCmd.Env = append(execCmd.Env, os.Environ()...)
 	// redirect stderr and stdout into the Write function of the process.go
 	execCmd.Stderr = b
 	execCmd.Stdout = b

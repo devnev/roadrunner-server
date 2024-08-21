@@ -280,3 +280,102 @@ func TestEnv4(t *testing.T) {
 
 	t.Fatal("FOO not found")
 }
+
+func TestEnvSetWithDefault(t *testing.T) {
+	log, _ := zap.NewDevelopment()
+	p := &Plugin{
+		preparedEnvs: make([]string, 0),
+		cfg:          &Config{},
+		log:          log,
+	}
+
+	err := os.Setenv("FOO_BAR", "foo")
+	require.NoError(t, err)
+
+	v := viper.New()
+	v.Set("server.command", "php php_test_files/client.php echo pipes")
+
+	m := make(map[string]interface{})
+	m["env"] = `FOO: ${FOO_BAR:-bar]`
+
+	v.Set("server.env", m)
+	cfg, err := InitMockCfg(v)
+	require.NoError(t, err)
+
+	err = p.Init(cfg, NewTestLogger(log))
+	require.NoError(t, err)
+
+	for i := 0; i < len(p.preparedEnvs); i++ {
+		if p.preparedEnvs[i] == `ENV=FOO: foo` {
+			return
+		}
+	}
+
+	t.Fatal("FOO not found")
+}
+
+func TestEnvEmptyWithDefault(t *testing.T) {
+	log, _ := zap.NewDevelopment()
+	p := &Plugin{
+		preparedEnvs: make([]string, 0),
+		cfg:          &Config{},
+		log:          log,
+	}
+
+	err := os.Setenv("FOO_BAR", "")
+	require.NoError(t, err)
+
+	v := viper.New()
+	v.Set("server.command", "php php_test_files/client.php echo pipes")
+
+	m := make(map[string]interface{})
+	m["env"] = `FOO: ${FOO_BAR:-bar]`
+
+	v.Set("server.env", m)
+	cfg, err := InitMockCfg(v)
+	require.NoError(t, err)
+
+	err = p.Init(cfg, NewTestLogger(log))
+	require.NoError(t, err)
+
+	for i := 0; i < len(p.preparedEnvs); i++ {
+		if p.preparedEnvs[i] == `ENV=FOO: bar` {
+			return
+		}
+	}
+
+	t.Fatal("FOO not found")
+}
+
+func TestEnvUnsetWithDefault(t *testing.T) {
+	log, _ := zap.NewDevelopment()
+	p := &Plugin{
+		preparedEnvs: make([]string, 0),
+		cfg:          &Config{},
+		log:          log,
+	}
+
+	err := os.Unsetenv("FOO_BAR")
+	require.NoError(t, err)
+
+	v := viper.New()
+	v.Set("server.command", "php php_test_files/client.php echo pipes")
+
+	m := make(map[string]interface{})
+	m["env"] = `FOO: ${FOO_BAR:-bar]`
+
+	v.Set("server.env", m)
+	cfg, err := InitMockCfg(v)
+	require.NoError(t, err)
+
+	err = p.Init(cfg, NewTestLogger(log))
+	require.NoError(t, err)
+
+	for i := 0; i < len(p.preparedEnvs); i++ {
+		if p.preparedEnvs[i] == `ENV=FOO: bar` {
+			return
+		}
+	}
+
+	t.Fatal("FOO not found")
+}
